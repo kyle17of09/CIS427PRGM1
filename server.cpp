@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
 
 
     // Open Database and Connect to Database
-    rc = sqlite3_open("cis427_crypto.sqlite", &db);
+    rc = sqlite3_open("cis427_stock.sqlite", &db);
 
 
     // Check if Database was opened successfully
@@ -77,16 +77,16 @@ int main(int argc, char* argv[]) {
     rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
 
 
-    // Create sql cryptos table creation command
-    sql = "create table if not exists cryptos (\
+    // Create sql stocks table creation command
+    sql = "create table if not exists stocks (\
         ID INTEGER PRIMARY KEY AUTOINCREMENT,\
-        crypto_name varchar(10) NOT NULL,\
-        crypto_balance DOUBLE,\
+        stock_name varchar(10) NOT NULL,\
+        stock_balance DOUBLE,\
         user_id TEXT,\
         FOREIGN KEY(user_id) REFERENCES users(ID)\
     );";
 
-    // Execute cryptos table creation
+    // Execute stocks table creation
     rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
 
 
@@ -240,23 +240,23 @@ int main(int argc, char* argv[]) {
                     2. Check if the client-selected user exists in the users table
                         - Return an error if the user does not exist
                         - Otherwise, continue
-                    3. Calculate the crypto transaction price
+                    3. Calculate the stock transaction price
                     4. Get the user's usd balance
                     5. Check if the user can afford the transaction
                         - If they cannot, return an error
                         - Otherwise, continue
                     6. Update the user's balance in the users table
-                    7. Check the cryptos table if there already exists a record of the selected crypto
+                    7. Check the stocks table if there already exists a record of the selected stock
                         - If there exists a record, update the record
                         - Otherwise, create a new record
-                    8. The command completed successfully, return 200 OK, the new usd_balance and new crypto_balance
+                    8. The command completed successfully, return 200 OK, the new usd_balance and new stock_balance
             */
 
             if (command == "BUY") {
 
                 // Checks if the client used the command properly
                 if (!extractInfo(buf, infoArr, command)) {
-                    send(nClient, "403 message format error: Missing information\n EX. Command: BUY crypto_name #_to_buy price userID", sizeof(buf), 0);
+                    send(nClient, "403 message format error: Missing information\n EX. Command: BUY stock_name #_to_buy price userID", sizeof(buf), 0);
                 }
                 else {
                     // Check if selected user exists in users table 
@@ -274,9 +274,9 @@ int main(int argc, char* argv[]) {
                         // USER EXISTS
                         fprintf(stdout, "User Exists in Users Table.\n");
 
-                        // Calculate crypto price
-                        double cryptoPrice = std::stod(infoArr[1]) * std::stod(infoArr[2]);
-                        std::cout << "Crypto Price: " << cryptoPrice << std::endl;
+                        // Calculate stock price
+                        double stockPrice = std::stod(infoArr[1]) * std::stod(infoArr[2]);
+                        std::cout << "Stock Price: " << stockPrice << std::endl;
 
                         // Get the usd balance of the user
                         sql = "SELECT usd_balance FROM users WHERE users.ID=" + selectedUsr;
@@ -290,10 +290,10 @@ int main(int argc, char* argv[]) {
                             sqlite3_free(zErrMsg);
                             send(nClient, "SQL error", 10, 0);
                         }
-                        else if (stod(usd_balance) >= cryptoPrice) {
+                        else if (stod(usd_balance) >= stockPrice) {
                             // User has enough in balance to make the purchase
                             // Update usd_balance with new balance
-                            double difference = stod(usd_balance) - cryptoPrice;
+                            double difference = stod(usd_balance) - stockPrice;
                             std::string sql = "UPDATE users SET usd_balance=" + std::to_string(difference) + " WHERE ID =" + selectedUsr + ";";
                             rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
                             std::cout << "User Balance Updated: " << difference << std::endl;
@@ -305,9 +305,9 @@ int main(int argc, char* argv[]) {
                                 send(nClient, "SQL error", 10, 0);
                             }
 
-                            // Add new record or update record to crypto table
-                            // Checks if record already exists in cryptos
-                            sql = "SELECT IIF(EXISTS(SELECT 1 FROM cryptos WHERE cryptos.crypto_name='" + infoArr[0] + "' AND cryptos.user_id='" + selectedUsr + "'), 'RECORD_PRESENT', 'RECORD_NOT_PRESENT') result;";
+                            // Add new record or update record to stock table
+                            // Checks if record already exists in stocks
+                            sql = "SELECT IIF(EXISTS(SELECT 1 FROM stocks WHERE stocks.stock_name='" + infoArr[0] + "' AND stocks.user_id='" + selectedUsr + "'), 'RECORD_PRESENT', 'RECORD_NOT_PRESENT') result;";
                             rc = sqlite3_exec(db, sql.c_str(), callback, ptr, &zErrMsg);
 
                             if (rc != SQLITE_OK) {
@@ -317,9 +317,9 @@ int main(int argc, char* argv[]) {
                             }
                             else if (resultant == "RECORD_PRESENT") {
                                 // A record exists, so update the record
-                                sql = "UPDATE cryptos SET crypto_balance= crypto_balance +" + infoArr[1] + " WHERE cryptos.crypto_name='" + infoArr[0] + "' AND cryptos.user_id='" + selectedUsr + "';";
+                                sql = "UPDATE stocks SET stock_balance= stock_balance +" + infoArr[1] + " WHERE stocks.stock_name='" + infoArr[0] + "' AND stocks.user_id='" + selectedUsr + "';";
                                 rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &zErrMsg);
-                                std::cout << "Added " << infoArr[1] << " crypto to " << infoArr[0] << " for " << selectedUsr << std::endl;
+                                std::cout << "Added " << infoArr[1] << " stock to " << infoArr[0] << " for " << selectedUsr << std::endl;
 
                                 //Check if SQL executed correctly
                                 if (rc != SQLITE_OK) {
@@ -330,9 +330,9 @@ int main(int argc, char* argv[]) {
                             }
                             else {
                                 // A record does not exist, so add a record
-                                sql = "INSERT INTO cryptos(crypto_name, crypto_balance, user_id) VALUES ('" + infoArr[0] + "', '" + infoArr[1] + "', '" + selectedUsr + "');";
+                                sql = "INSERT INTO stocks(stock_name, stock_balance, user_id) VALUES ('" + infoArr[0] + "', '" + infoArr[1] + "', '" + selectedUsr + "');";
                                 rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &zErrMsg);
-                                std::cout << "New record created:\n\tCrypto Name: " << infoArr[0] << "\n\tCrypto Balance: " << infoArr[1] << "\n\tUserID: " << selectedUsr << std::endl;
+                                std::cout << "New record created:\n\tstock Name: " << infoArr[0] << "\n\tstock Balance: " << infoArr[1] << "\n\tUserID: " << selectedUsr << std::endl;
 
                                 //Check if SQL executed correctly
                                 if (rc != SQLITE_OK) {
@@ -354,8 +354,8 @@ int main(int argc, char* argv[]) {
                                 send(nClient, "SQL error", 10, 0);
                             }
 
-                            // Get the new crypto_balance
-                            sql = "SELECT crypto_balance FROM cryptos WHERE cryptos.crypto_name='" + infoArr[0] + "' AND cryptos.user_id='" + selectedUsr + "';";
+                            // Get the new stock_balance
+                            sql = "SELECT stock_balance FROM stocks WHERE stocks.stock_name='" + infoArr[0] + "' AND stocks.user_id='" + selectedUsr + "';";
                             rc = sqlite3_exec(db, sql.c_str(), callback, ptr, &zErrMsg);
 
                             //Check if SQL executed correctly
@@ -364,10 +364,10 @@ int main(int argc, char* argv[]) {
                                 sqlite3_free(zErrMsg);
                                 send(nClient, "SQL error", 10, 0);
                             }
-                            std::string crypto_balance = resultant;
+                            std::string stock_balance = resultant;
 
-                            // The command completed successfully, return 200 OK, the new usd_balance and new crypto_balance
-                            std::string tempStr = "200 OK\n   BOUGHT: New balance: " + crypto_balance + " " + infoArr[0] + ". USD balance $" + usd_balance;
+                            // The command completed successfully, return 200 OK, the new usd_balance and new stock_balance
+                            std::string tempStr = "200 OK\n   BOUGHT: New balance: " + stock_balance + " " + infoArr[0] + ". USD balance $" + usd_balance;
                             send(nClient, tempStr.c_str(), sizeof(buf), 0);
                         }
                         else {
@@ -396,17 +396,17 @@ int main(int argc, char* argv[]) {
                        - Return an error if they don't. Otherwise, continue
                    5. Update the users table
                        a. Increase the user's usd balance
-                   6. Update the cryptos table
-                       a. Decrease the user's crypto balance
+                   6. Update the stocks table
+                       a. Decrease the user's stock balance
                    7. If this stage is reached, the sell command has completed successfully
-                       - return 200 ok, the new cryptos balance, and the new usd balance
+                       - return 200 ok, the new stocks balance, and the new usd balance
            */
 
             else if (command == "SELL") {
                 // Check if the client used the command properly
                 if (!extractInfo(buf, infoArr, command)) {
                     std::cout << "Invalid command: Missing information" << std::endl;
-                    send(nClient, "403 message format error: Missing information\n EX. Command: SELL crypto_name crypto_price crypto_amnt userID", sizeof(buf), 0);
+                    send(nClient, "403 message format error: Missing information\n EX. Command: SELL stock_name stock_price stock_amnt userID", sizeof(buf), 0);
                 }
                 else {
                     std::string selectedUsr = infoArr[3];
@@ -422,7 +422,7 @@ int main(int argc, char* argv[]) {
                     }
                     else if (resultant == "PRESENT") {
                         // Check if the user owns the selected coin
-                        sql = "SELECT IIF(EXISTS(SELECT 1 FROM cryptos WHERE cryptos.crypto_name='" + infoArr[0] + "' AND cryptos.user_id='" + selectedUsr + "'), 'RECORD_PRESENT', 'RECORD_NOT_PRESENT') result;";
+                        sql = "SELECT IIF(EXISTS(SELECT 1 FROM stocks WHERE stocks.stock_name='" + infoArr[0] + "' AND stocks.user_id='" + selectedUsr + "'), 'RECORD_PRESENT', 'RECORD_NOT_PRESENT') result;";
                         rc = sqlite3_exec(db, sql.c_str(), callback, ptr, &zErrMsg);
 
                         if (rc != SQLITE_OK) {
@@ -438,7 +438,7 @@ int main(int argc, char* argv[]) {
                             // Check if the user has enough of the selected coin to sell
                             double numCoinsToSell = std::stod(infoArr[1]);
                             // Get the number of coins the user owns of the selected coin
-                            sql = "SELECT crypto_balance FROM cryptos WHERE cryptos.crypto_name='" + infoArr[0] + "' AND cryptos.user_id='" + selectedUsr + "';";
+                            sql = "SELECT stock_balance FROM stocks WHERE stocks.stock_name='" + infoArr[0] + "' AND stocks.user_id='" + selectedUsr + "';";
                             rc = sqlite3_exec(db, sql.c_str(), callback, ptr, &zErrMsg);
 
                             if (rc != SQLITE_OK) {
@@ -447,19 +447,19 @@ int main(int argc, char* argv[]) {
                                 send(nClient, "SQL error", 10, 0);
                             }
 
-                            double crypto_balance = std::stod(resultant);
+                            double stock_balance = std::stod(resultant);
                             // Not enough coins in balance to sell
-                            if (crypto_balance < numCoinsToSell) {
+                            if (stock_balance < numCoinsToSell) {
                                 std::cout << "SERVER> Attempting to sell more coins than the user has. Aborting sell.\n";
                                 send(nClient, "403 message format error: Attempting to sell more coins than the user has.", sizeof(buf), 0);
                             }
                             else {
                                 // Get dollar amount to sell
-                                double cryptoPrice = std::stod(infoArr[1]) * std::stod(infoArr[2]);
+                                double stockPrice = std::stod(infoArr[1]) * std::stod(infoArr[2]);
 
                                 /* Update users table */
                                 // Add new amount to user's balance
-                                sql = "UPDATE users SET usd_balance= usd_balance +" + std::to_string(cryptoPrice) + " WHERE users.ID='" + selectedUsr + "';";
+                                sql = "UPDATE users SET usd_balance= usd_balance +" + std::to_string(stockPrice) + " WHERE users.ID='" + selectedUsr + "';";
                                 rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &zErrMsg);
 
                                 if (rc != SQLITE_OK) {
@@ -468,9 +468,9 @@ int main(int argc, char* argv[]) {
                                     send(nClient, "SQL error", 10, 0);
                                 }
 
-                                /* Update cryptos table */
-                                // Remove the sold coins from cryptos
-                                sql = "UPDATE cryptos SET crypto_balance= crypto_balance -" + std::to_string(numCoinsToSell) + " WHERE cryptos.crypto_name='" + infoArr[0] + "' AND cryptos.user_id='" + selectedUsr + "';";
+                                /* Update stocks table */
+                                // Remove the sold coins from stocks
+                                sql = "UPDATE stocks SET stock_balance= stock_balance -" + std::to_string(numCoinsToSell) + " WHERE stocks.stock_name='" + infoArr[0] + "' AND stocks.user_id='" + selectedUsr + "';";
                                 rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &zErrMsg);
 
                                 if (rc != SQLITE_OK) {
@@ -485,13 +485,13 @@ int main(int argc, char* argv[]) {
                                 rc = sqlite3_exec(db, sql.c_str(), callback, ptr, &zErrMsg);
                                 std::string usd_balance = resultant;
 
-                                // Get new crypto_balance
-                                sql = "SELECT crypto_balance FROM cryptos WHERE cryptos.crypto_name='" + infoArr[0] + "' AND cryptos.user_id='" + selectedUsr + "';";
+                                // Get new stock_balance
+                                sql = "SELECT stock_balance FROM stocks WHERE stocks.stock_name='" + infoArr[0] + "' AND stocks.user_id='" + selectedUsr + "';";
                                 rc = sqlite3_exec(db, sql.c_str(), callback, ptr, &zErrMsg);
-                                std::string crypto_balance = resultant;
+                                std::string stock_balance = resultant;
 
                                 // Sell command completed successfully
-                                std::string tempStr = "200 OK\n   SOLD: New balance: " + crypto_balance + " " + infoArr[0] + ". USD $" + usd_balance;
+                                std::string tempStr = "200 OK\n   SOLD: New balance: " + stock_balance + " " + infoArr[0] + ". USD $" + usd_balance;
                                 send(nClient, tempStr.c_str(), sizeof(buf), 0);
                             }
                         }
@@ -506,8 +506,8 @@ int main(int argc, char* argv[]) {
             else if (command == "LIST") {
                 std::cout << "List command." << std::endl;
                 resultant = "";
-                // List all records in cryptos table for user_id = 1
-                std::string sql = "SELECT * FROM cryptos WHERE cryptos.user_id=1";
+                // List all records in stocks table for user_id = 1
+                std::string sql = "SELECT * FROM stocks WHERE stocks.user_id=1";
 
                 /* Execute SQL statement */
                 rc = sqlite3_exec(db, sql.c_str(), callback, ptr, &zErrMsg);
@@ -521,10 +521,10 @@ int main(int argc, char* argv[]) {
                 std::string sendStr;
 
                 if (resultant == "") {
-                    sendStr = "200 OK\n   No records in the Crypto Database.";
+                    sendStr = "200 OK\n   No records in the stock Database.";
                 }
                 else {
-                    sendStr = "200 OK\n   The list of records in the Crypto database:\nCryptoID  Crypto_Name Crypto_Amount  UserID\n   " + resultant;
+                    sendStr = "200 OK\n   The list of records in the stock database:\nstockID  stock_Name stock_Amount  UserID\n   " + resultant;
                 }
                 send(nClient, sendStr.c_str(), sizeof(buf), 0);
             }
