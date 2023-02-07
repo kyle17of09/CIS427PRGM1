@@ -390,9 +390,9 @@ int main(int argc, char* argv[]) {
                        - Return an error if not used properly. Otherwise continue
                    2. Check if the client-selected user exists in the users table
                        - Return an error if the user does not exist. Otherwise, continue
-                   3. Check if the user owns the selected coin
-                       - Return an error if they do not own the coin. Otherwise, continue
-                   4. Check if the user has enough of the selected coin to sell
+                   3. Check if the user owns the selected stock
+                       - Return an error if they do not own the stock. Otherwise, continue
+                   4. Check if the user has enough of the selected stock to sell
                        - Return an error if they don't. Otherwise, continue
                    5. Update the users table
                        a. Increase the user's usd balance
@@ -421,7 +421,7 @@ int main(int argc, char* argv[]) {
                         send(nClient, "SQL error", 10, 0);
                     }
                     else if (resultant == "PRESENT") {
-                        // Check if the user owns the selected coin
+                        // Check if the user owns the selected stock
                         sql = "SELECT IIF(EXISTS(SELECT 1 FROM stocks WHERE stocks.stock_name='" + infoArr[0] + "' AND stocks.user_id='" + selectedUsr + "'), 'RECORD_PRESENT', 'RECORD_NOT_PRESENT') result;";
                         rc = sqlite3_exec(db, sql.c_str(), callback, ptr, &zErrMsg);
 
@@ -431,13 +431,13 @@ int main(int argc, char* argv[]) {
                             send(nClient, "SQL error", 10, 0);
                         }
                         else if (resultant == "RECORD_NOT_PRESENT") {
-                            std::cout << "SERVER> User doesn't own the selected coin. Aborting Sell\n";
-                            send(nClient, "403 message format error: User does not own this coin.", sizeof(buf), 0);
+                            std::cout << "SERVER> User doesn't own the selected stock. Aborting Sell\n";
+                            send(nClient, "403 message format error: User does not own this stock.", sizeof(buf), 0);
                         }
                         else {
                             // Check if the user has enough of the selected coin to sell
                             double numCoinsToSell = std::stod(infoArr[1]);
-                            // Get the number of coins the user owns of the selected coin
+                            // Get the number of stocks the user owns of the selected stock
                             sql = "SELECT stock_balance FROM stocks WHERE stocks.stock_name='" + infoArr[0] + "' AND stocks.user_id='" + selectedUsr + "';";
                             rc = sqlite3_exec(db, sql.c_str(), callback, ptr, &zErrMsg);
 
@@ -448,10 +448,10 @@ int main(int argc, char* argv[]) {
                             }
 
                             double stock_balance = std::stod(resultant);
-                            // Not enough coins in balance to sell
+                            // Not enough stocks in balance to sell
                             if (stock_balance < numCoinsToSell) {
-                                std::cout << "SERVER> Attempting to sell more coins than the user has. Aborting sell.\n";
-                                send(nClient, "403 message format error: Attempting to sell more coins than the user has.", sizeof(buf), 0);
+                                std::cout << "SERVER> Attempting to sell more stocks than the user has. Aborting sell.\n";
+                                send(nClient, "403 message format error: Attempting to sell more stocks than the user has.", sizeof(buf), 0);
                             }
                             else {
                                 // Get dollar amount to sell
@@ -469,7 +469,7 @@ int main(int argc, char* argv[]) {
                                 }
 
                                 /* Update stocks table */
-                                // Remove the sold coins from stocks
+                                // Remove the sold stocks from stocks
                                 sql = "UPDATE stocks SET stock_balance= stock_balance -" + std::to_string(numCoinsToSell) + " WHERE stocks.stock_name='" + infoArr[0] + "' AND stocks.user_id='" + selectedUsr + "';";
                                 rc = sqlite3_exec(db, sql.c_str(), NULL, NULL, &zErrMsg);
 
@@ -616,7 +616,7 @@ std::string buildCommand(char line[]) {
     return command;
 }
 
-// Enters the command info into an array. This array contains the type of coin, amount of coin, price per unit of coin, and the user ID.
+// Enters the command info into an array. This array contains the type of stock, amount of stock, price per unit of stock, and the user ID.
 // Returns true if successful, otherwise returns false 
 bool extractInfo(char line[], std::string info[], std::string command) {
     int l = command.length();
