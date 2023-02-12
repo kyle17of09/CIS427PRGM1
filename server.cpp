@@ -276,6 +276,13 @@ int main(int argc, char* argv[]) {
 
                         // Calculate stock price
                         double stockPrice = std::stod(infoArr[1]) * std::stod(infoArr[2]);
+                        std::string round = std::to_string(stockPrice);
+                        for (int i = 0; i < round.length(); i++) {
+                            if (round[i] == '.')
+                                round.erase(i + 3);
+                        }
+                        stockPrice = std::stod(round);
+
                         std::cout << "Stock Price: " << stockPrice << std::endl;
 
                         // Get the usd balance of the user
@@ -456,6 +463,13 @@ int main(int argc, char* argv[]) {
                             else {
                                 // Get dollar amount to sell
                                 double stockPrice = std::stod(infoArr[1]) * std::stod(infoArr[2]);
+                                std::string round = std::to_string(stockPrice);
+                                for (int i = 0; i < round.length(); i++) {
+                                    if (round[i] == '.')
+                                        round.erase(i + 3);
+                                }
+                                stockPrice = std::stod(round);
+
 
                                 /* Update users table */
                                 // Add new amount to user's balance
