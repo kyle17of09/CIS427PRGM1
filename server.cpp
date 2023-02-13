@@ -413,7 +413,7 @@ int main(int argc, char* argv[]) {
                 // Check if the client used the command properly
                 if (!extractInfo(buf, infoArr, command)) {
                     std::cout << "Invalid command: Missing information" << std::endl;
-                    send(nClient, "403 message format error: Missing information\n EX. Command: SELL stock_name stock_price stock_amnt userID", sizeof(buf), 0);
+                    send(nClient, "403 message format error: Missing information\n EX. Command: SELL stock_name stock_amnt stock_price userID", sizeof(buf), 0);
                 }
                 else {
                     std::string selectedUsr = infoArr[3];
