@@ -9,7 +9,7 @@ sqlite.h
 
 transfer them over to uofm dearborn files with SSH client (Bitvise)
 
-once you transfer them simply compile the server and client like such
+once you transfer them simply compile the server and client with the below commands
 
 g++ client.cpp -o client
 
